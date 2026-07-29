@@ -9,6 +9,9 @@ import { Onboarding } from "./components/Onboarding";
 import { Registration } from "./components/Registration";
 import { RegistrationSuccess } from "./components/RegistrationSuccess";
 import { Login } from "./components/Login";
+import { VerifyEmail } from "./components/VerifyEmail";
+import { ResetPassword } from "./components/ResetPassword";
+import { AuthGuard } from "./components/AuthGuard";
 
 const routes: RouteObject[] = [
   {
@@ -24,8 +27,20 @@ const routes: RouteObject[] = [
     element: <Registration />,
   },
   {
+    path: "/verify-email",
+    element: <VerifyEmail />,
+  },
+  {
     path: "/onboarding",
     element: <Onboarding />,
+  },
+  {
+    path: "/verify-email",
+    element: <VerifyEmail />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
   {
     path: "/registration-success",
@@ -33,7 +48,11 @@ const routes: RouteObject[] = [
   },
   {
     path: "/dashboard",
-    element: <Layout />,
+    element: (
+      <AuthGuard>
+        <Layout />
+      </AuthGuard>
+    ),
     children: [
       { index: true, element: <Dashboard /> },
       { path: "camera", element: <Camera /> },

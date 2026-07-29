@@ -1,7 +1,8 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router";
 import { useEffect } from "react";
-import { Home, Camera, User, BookOpen, Clock } from "lucide-react";
+import { Home, Camera, User, BookOpen, Clock, LogOut } from "lucide-react";
 import { storage } from "../utils/storage";
+import { signOut } from "../utils/auth";
 
 export function Layout() {
   const navigate = useNavigate();
@@ -21,6 +22,11 @@ export function Layout() {
     { path: '/dashboard/profile', icon: User, label: 'Profile' },
   ];
 
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/login';
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
@@ -32,6 +38,13 @@ export function Layout() {
             </div>
             <h1 className="font-semibold text-lg">Demeter</h1>
           </div>
+          <button
+            onClick={handleSignOut}
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </button>
         </div>
       </header>
 

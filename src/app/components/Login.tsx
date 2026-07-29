@@ -6,7 +6,7 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Alert, AlertDescription } from "./ui/alert";
 import { AlertCircle, Mail, Lock } from "lucide-react";
-import { storage } from "../utils/storage";
+import { signInWithEmail, signInWithGoogle } from "../utils/auth";
 import { recordLogin } from "../utils/badges";
 
 export function Login() {
@@ -45,30 +45,24 @@ export function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Check if user exists (in production, this would be an API call)
-      const userAuth = localStorage.getItem('userAuth');
-      
-      if (userAuth) {
-        const auth = JSON.parse(userAuth);
-        
-        // Simple check - in production, password would be verified on backend
-        if (auth.email === formData.email) {
-          // Mark user as logged in
-          localStorage.setItem('isLoggedIn', 'true');
-          // Record login for badge tracking
-          recordLogin();
-          // Navigate to dashboard
-          navigate('/dashboard');
-        } else {
-          setErrors({ general: 'Invalid email or password' });
-        }
-      } else {
-        setErrors({ general: 'No account found. Please register first.' });
+      const { data, error } = await signInWithEmail(formData.email, formData.password);
+
+      if (error) {
+        setErrors({ ...errors, general: error.message });
+        return;
       }
+
+      if (!data.session) {
+        setErrors({ ...errors, general: 'Unable to sign in. Please verify your email or try again.' });
+        return;
+      }
+
+      recordLogin();
+      navigate('/dashboard');
     }
   };
 
@@ -157,7 +151,7 @@ export function Login() {
               <button
                 type="button"
                 className="text-sm text-green-600 hover:text-green-700 font-medium"
-                onClick={() => {/* In production, handle forgot password */}}
+                onClick={() => navigate('/reset-password')}
               >
                 Forgot password?
               </button>
@@ -169,6 +163,21 @@ export function Login() {
               className="w-full bg-green-600 hover:bg-green-700"
             >
               Sign In
+            </Button>
+
+            {/* OAuth Button */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                const { error } = await signInWithGoogle();
+                if (error) {
+                  setErrors({ ...errors, general: error.message });
+                }
+              }}
+            >
+              Sign in with Google
             </Button>
 
             {/* Additional Links */}

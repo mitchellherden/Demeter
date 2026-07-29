@@ -6,7 +6,8 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Alert, AlertDescription } from "./ui/alert";
-import { AlertCircle, Mail, Lock, Globe, CheckCircle } from "lucide-react";
+import { AlertCircle, Mail, Lock, Globe } from "lucide-react";
+import { signUpWithEmail } from "../utils/auth";
 
 const regions = [
   { value: 'na', label: 'North America' },
@@ -71,19 +72,29 @@ export function Registration() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Store registration data (in production, this would be an API call)
-      localStorage.setItem('userAuth', JSON.stringify({
-        email: formData.email,
-        region: formData.region,
-        registeredAt: new Date().toISOString(),
-      }));
-      
-      // Navigate to onboarding instead of showing success
-      navigate('/onboarding');
+      const { data, error } = await signUpWithEmail(formData.email, formData.password);
+      if (error) {
+        setErrors({ ...errors, email: error.message });
+        return;
+      }
+
+      // Store registration metadata locally until onboarding completes
+      localStorage.setItem(
+        'userAuth',
+        JSON.stringify({
+          email: formData.email,
+          region: formData.region,
+          registeredAt: new Date().toISOString(),
+          userId: data.user?.id,
+        })
+      );
+
+      // Redirect to verification step while Supabase sends confirmation
+      navigate('/verify-email');
     }
   };
 
