@@ -1,3 +1,5 @@
+// Email verification prompt shown after sign-up.
+// It reminds the user to confirm their email before continuing to the app.
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";

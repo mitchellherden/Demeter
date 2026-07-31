@@ -1,3 +1,5 @@
+// Meal scanning workflow.
+// Users can open the camera, upload an image, review AI guesses, and save the meal entry.
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";

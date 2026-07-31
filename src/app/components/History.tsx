@@ -1,3 +1,5 @@
+// Meal history screen.
+// This view groups saved meals by date, shows totals, and allows deletion of entries.
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";

@@ -1,3 +1,5 @@
+// Confirmation screen shown after a successful account creation.
+// It reads the saved auth metadata and redirects users back to registration if needed.
 import { useNavigate } from "react-router";
 import { useEffect } from "react";
 import { Button } from "./ui/button";

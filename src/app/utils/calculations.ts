@@ -1,5 +1,5 @@
-// Calculations for nutritional targets and recommendations
-
+// Nutrition calculation helpers.
+// These functions convert user profile information into calorie, BMI, and macro targets.
 import { UserProfile } from './storage';
 
 // Calculate BMR (Basal Metabolic Rate) using Mifflin-St Jeor Equation

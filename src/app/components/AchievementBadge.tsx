@@ -1,3 +1,5 @@
+// Reusable achievement badge component.
+// It presents the badge icon, progress ring, and a hover tooltip with unlock details.
 import { Badge as BadgeType } from '../utils/badges';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card';
 import { Badge } from './ui/badge';

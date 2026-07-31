@@ -1,3 +1,5 @@
+// Password reset flow.
+// It captures the user's email and requests a Supabase recovery link.
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";

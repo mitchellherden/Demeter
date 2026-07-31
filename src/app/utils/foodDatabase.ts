@@ -1,6 +1,5 @@
-// Mock food database for AI recognition
-// In a real app, this would connect to a comprehensive nutrition API
-
+// Mock nutrition database used by the meal-recognition flow.
+// In a real app, this would be replaced by a live food-recognition or nutrition API.
 import { FoodItem } from './storage';
 
 export const foodDatabase: Record<string, FoodItem> = {

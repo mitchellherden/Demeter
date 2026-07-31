@@ -1,3 +1,5 @@
+// Profile and achievement dashboard.
+// The screen shows personal stats, editable health data, and user progress toward badges.
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -33,6 +35,7 @@ export function Profile() {
   const [formData, setFormData] = useState(profile || {
     name: '',
     age: 0,
+    gender: 'male' as const,
     weight: 0,
     height: 0,
     goal: 'maintain' as const,
@@ -62,6 +65,7 @@ export function Profile() {
 
     const updatedProfile = {
       ...formData,
+      gender: profile.gender,
       targetCalories,
       targetProtein: macros.protein,
       targetCarbs: macros.carbs,

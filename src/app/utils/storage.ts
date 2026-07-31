@@ -1,5 +1,5 @@
-// Local storage utilities for user-specific app data
-
+// Local storage abstraction for app state.
+// Data is kept scoped per user and persisted across sessions to support onboarding, meals, and badges.
 export interface UserProfile {
   name: string;
   age: number;

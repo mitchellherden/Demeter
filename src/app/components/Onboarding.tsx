@@ -1,3 +1,5 @@
+// First-run onboarding flow.
+// It gathers the user's personal health profile and calculates personalized nutrition targets.
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";

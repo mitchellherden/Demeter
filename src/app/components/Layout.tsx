@@ -1,3 +1,5 @@
+// Shared shell for the authenticated dashboard.
+// It enforces onboarding completion, shows the top bar, and provides the bottom nav.
 import { Outlet, Link, useNavigate, useLocation } from "react-router";
 import { useEffect } from "react";
 import { Home, Camera, User, BookOpen, Clock, LogOut } from "lucide-react";
@@ -8,12 +10,14 @@ export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // If a user has not completed onboarding yet, redirect them before showing app content.
   useEffect(() => {
     if (!storage.hasCompletedOnboarding()) {
       navigate('/onboarding');
     }
   }, [navigate]);
 
+  // Bottom navigation items for the main dashboard sections.
   const navItems = [
     { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/dashboard/camera', icon: Camera, label: 'Scan' },

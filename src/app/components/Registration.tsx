@@ -1,3 +1,5 @@
+// Account registration screen.
+// It collects user sign-up details, validates them, and creates the Supabase auth record.
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";

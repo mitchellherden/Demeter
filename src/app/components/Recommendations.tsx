@@ -1,3 +1,5 @@
+// Personalized recipe recommendations.
+// It measures remaining calories/macros and suggests recipes that match the user's goal.
 import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";

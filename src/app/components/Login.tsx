@@ -1,3 +1,5 @@
+// Login screen for existing users.
+// It validates credentials, signs in with Supabase, and records the user session.
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";

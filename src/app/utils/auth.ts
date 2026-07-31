@@ -1,3 +1,4 @@
+// Authentication helpers for Supabase-backed sign-in and session management.
 import { supabase } from "./supabaseClient";
 
 export async function signUpWithEmail(email: string, password: string) {

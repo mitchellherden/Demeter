@@ -1,3 +1,5 @@
+// Route definitions for the application.
+// These paths control the public/auth flows and the protected dashboard area.
 import { createBrowserRouter, RouteObject } from "react-router";
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./components/Dashboard";
@@ -13,6 +15,7 @@ import { VerifyEmail } from "./components/VerifyEmail";
 import { ResetPassword } from "./components/ResetPassword";
 import { AuthGuard } from "./components/AuthGuard";
 
+// The app is split into public screens and a protected dashboard shell.
 const routes: RouteObject[] = [
   {
     path: "/",

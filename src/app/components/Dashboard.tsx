@@ -1,3 +1,5 @@
+// Dashboard overview for the current day and week.
+// It combines personal goals, meal logs, and summary charts into one overview screen.
 import { useMemo, useEffect } from "react";
 import { Link } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -10,15 +12,17 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { updateBadgeMetrics } from "../utils/badges";
 
 export function Dashboard() {
+  // Pull the user's saved profile and meal history from local storage.
   const profile = storage.getProfile();
   const todaysMeals = storage.getTodaysMeals();
   const weekMeals = storage.getWeekMeals();
 
-  // Update badge metrics when dashboard loads
+  // Update achievement data every time the dashboard is opened.
   useEffect(() => {
     updateBadgeMetrics();
   }, []);
 
+  // Aggregate the nutrition totals for the current day.
   const todaysStats = useMemo(() => {
     return {
       calories: todaysMeals.reduce((sum, meal) => sum + meal.totalCalories, 0),
