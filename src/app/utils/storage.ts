@@ -1,4 +1,4 @@
-// Local storage utilities for user data
+// Local storage utilities for user-specific app data
 
 export interface UserProfile {
   name: string;
@@ -12,7 +12,7 @@ export interface UserProfile {
   targetProtein: number;
   targetCarbs: number;
   targetFat: number;
-  createdAt?: string; // Track when profile was created
+  createdAt?: string;
 }
 
 export interface FoodItem {
@@ -38,18 +38,47 @@ export interface Meal {
   mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
 }
 
+function getCurrentUserAuth() {
+  const data = localStorage.getItem('userAuth');
+  if (!data) return null;
+
+  try {
+    const parsed = JSON.parse(data);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function getStorageKey(prefix: string): string {
+  const userAuth = getCurrentUserAuth();
+  const userId = userAuth?.userId ?? userAuth?.id ?? 'anonymous';
+  return `${prefix}_${userId}`;
+}
+
+export function setCurrentUserAuth(userId: string, email?: string): void {
+  localStorage.setItem('userAuth', JSON.stringify({ userId, email, registeredAt: new Date().toISOString() }));
+}
+
 export const storage = {
   getProfile(): UserProfile | null {
-    const data = localStorage.getItem('userProfile');
+    const key = getStorageKey('userProfile');
+    const data = localStorage.getItem(key) ?? localStorage.getItem('userProfile');
     return data ? JSON.parse(data) : null;
   },
 
   setProfile(profile: UserProfile): void {
-    // Add createdAt if it doesn't exist
-    if (!profile.createdAt) {
-      profile.createdAt = new Date().toISOString();
+    const finalProfile = {
+      ...profile,
+      createdAt: profile.createdAt ?? new Date().toISOString(),
+    };
+
+    localStorage.setItem(getStorageKey('userProfile'), JSON.stringify(finalProfile));
+
+    const userAuth = getCurrentUserAuth();
+    if (!userAuth) {
+      localStorage.setItem('userProfile', JSON.stringify(finalProfile));
     }
-    localStorage.setItem('userProfile', JSON.stringify(profile));
   },
 
   saveProfile(profile: UserProfile): void {
@@ -57,24 +86,40 @@ export const storage = {
   },
 
   setOnboardingComplete(complete: boolean): void {
-    localStorage.setItem('onboardingComplete', JSON.stringify(complete));
+    localStorage.setItem(getStorageKey('onboardingComplete'), JSON.stringify(complete));
+
+    const userAuth = getCurrentUserAuth();
+    if (!userAuth) {
+      localStorage.setItem('onboardingComplete', JSON.stringify(complete));
+    }
   },
 
   getMeals(): Meal[] {
-    const data = localStorage.getItem('meals');
+    const key = getStorageKey('meals');
+    const data = localStorage.getItem(key) ?? localStorage.getItem('meals');
     return data ? JSON.parse(data) : [];
   },
 
   addMeal(meal: Meal): void {
     const meals = this.getMeals();
     meals.unshift(meal);
-    localStorage.setItem('meals', JSON.stringify(meals));
+    localStorage.setItem(getStorageKey('meals'), JSON.stringify(meals));
+
+    const userAuth = getCurrentUserAuth();
+    if (!userAuth) {
+      localStorage.setItem('meals', JSON.stringify(meals));
+    }
   },
 
   deleteMeal(id: string): void {
     const meals = this.getMeals();
     const filtered = meals.filter(m => m.id !== id);
-    localStorage.setItem('meals', JSON.stringify(filtered));
+    localStorage.setItem(getStorageKey('meals'), JSON.stringify(filtered));
+
+    const userAuth = getCurrentUserAuth();
+    if (!userAuth) {
+      localStorage.setItem('meals', JSON.stringify(filtered));
+    }
   },
 
   getTodaysMeals(): Meal[] {
@@ -91,14 +136,38 @@ export const storage = {
   },
 
   hasCompletedOnboarding(): boolean {
-    const complete = localStorage.getItem('onboardingComplete');
+    const key = getStorageKey('onboardingComplete');
+    const complete = localStorage.getItem(key) ?? localStorage.getItem('onboardingComplete');
     return complete ? JSON.parse(complete) : false;
   },
 
+  clearCurrentUserData(): void {
+    const userAuth = getCurrentUserAuth();
+    const userId = userAuth?.userId ?? userAuth?.id ?? 'anonymous';
+
+    localStorage.removeItem(`userProfile_${userId}`);
+    localStorage.removeItem(`meals_${userId}`);
+    localStorage.removeItem(`onboardingComplete_${userId}`);
+    localStorage.removeItem(`badgeMetrics_${userId}`);
+    localStorage.removeItem('userAuth');
+  },
+
   clearAllData(): void {
-    localStorage.removeItem('userProfile');
-    localStorage.removeItem('meals');
-    localStorage.removeItem('onboardingComplete');
-    localStorage.removeItem('badgeMetrics');
+    const keys = Object.keys(localStorage);
+    keys.forEach((key) => {
+      if (
+        key.startsWith('userProfile_') ||
+        key.startsWith('meals_') ||
+        key.startsWith('onboardingComplete_') ||
+        key.startsWith('badgeMetrics_') ||
+        key === 'userProfile' ||
+        key === 'meals' ||
+        key === 'onboardingComplete' ||
+        key === 'badgeMetrics' ||
+        key === 'userAuth'
+      ) {
+        localStorage.removeItem(key);
+      }
+    });
   },
 };

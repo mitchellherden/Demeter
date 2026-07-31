@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Alert, AlertDescription } from "./ui/alert";
 import { AlertCircle, Mail, Lock, Globe } from "lucide-react";
 import { signUpWithEmail } from "../utils/auth";
+import { setCurrentUserAuth } from "../utils/storage";
 
 const regions = [
   { value: 'na', label: 'North America' },
@@ -82,16 +83,9 @@ export function Registration() {
         return;
       }
 
-      // Store registration metadata locally until onboarding completes
-      localStorage.setItem(
-        'userAuth',
-        JSON.stringify({
-          email: formData.email,
-          region: formData.region,
-          registeredAt: new Date().toISOString(),
-          userId: data.user?.id,
-        })
-      );
+      if (data.user) {
+        setCurrentUserAuth(data.user.id, formData.email);
+      }
 
       // Redirect to verification step while Supabase sends confirmation
       navigate('/verify-email');

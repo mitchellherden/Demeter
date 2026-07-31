@@ -17,7 +17,17 @@ export async function signInWithGoogle() {
   });
 }
 
+export async function getCurrentUserId() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) {
+    return null;
+  }
+
+  return user?.id ?? null;
+}
+
 export async function signOut() {
+  localStorage.removeItem("userAuth");
   return supabase.auth.signOut();
 }
 

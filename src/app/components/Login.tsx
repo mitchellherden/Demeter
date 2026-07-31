@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { AlertCircle, Mail, Lock } from "lucide-react";
 import { signInWithEmail, signInWithGoogle } from "../utils/auth";
 import { recordLogin } from "../utils/badges";
+import { setCurrentUserAuth } from "../utils/storage";
 
 export function Login() {
   const navigate = useNavigate();
@@ -59,6 +60,10 @@ export function Login() {
       if (!data.session) {
         setErrors({ ...errors, general: 'Unable to sign in. Please verify your email or try again.' });
         return;
+      }
+
+      if (data.user) {
+        setCurrentUserAuth(data.user.id, data.user.email ?? formData.email);
       }
 
       recordLogin();
