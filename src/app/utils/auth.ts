@@ -28,7 +28,22 @@ export async function getCurrentUserId() {
 }
 
 export async function signOut() {
-  localStorage.removeItem("userAuth");
+  Object.keys(localStorage).forEach((key) => {
+    if (
+      key.startsWith("userProfile_") ||
+      key.startsWith("meals_") ||
+      key.startsWith("onboardingComplete_") ||
+      key.startsWith("badgeMetrics_") ||
+      key === "userAuth" ||
+      key === "userProfile" ||
+      key === "meals" ||
+      key === "onboardingComplete" ||
+      key === "badgeMetrics"
+    ) {
+      localStorage.removeItem(key);
+    }
+  });
+
   return supabase.auth.signOut();
 }
 

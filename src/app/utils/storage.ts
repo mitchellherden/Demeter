@@ -1,5 +1,7 @@
 // Local storage abstraction for app state.
-// Data is kept scoped per user and persisted across sessions to support onboarding, meals, and badges.
+// Data is kept scoped per user and synced to Supabase when a user is signed in.
+import { supabase } from "./supabaseClient";
+
 export interface UserProfile {
   name: string;
   age: number;
@@ -50,10 +52,189 @@ function getCurrentUserAuth() {
   }
 }
 
-function getStorageKey(prefix: string): string {
+function getCurrentUserId(): string | null {
   const userAuth = getCurrentUserAuth();
-  const userId = userAuth?.userId ?? userAuth?.id ?? 'anonymous';
+  return userAuth?.userId ?? userAuth?.id ?? null;
+}
+
+function getStorageKey(prefix: string): string {
+  const userId = getCurrentUserId() ?? 'anonymous';
   return `${prefix}_${userId}`;
+}
+
+function profileToSupabasePayload(profile: UserProfile) {
+  const userAuth = getCurrentUserAuth();
+  const userId = getCurrentUserId();
+
+  return {
+    user_id: userId,
+    email: userAuth?.email ?? null,
+    name: profile.name,
+    age: profile.age,
+    gender: profile.gender,
+    weight: profile.weight,
+    height: profile.height,
+    goal: profile.goal,
+    activity_level: profile.activityLevel,
+    target_calories: profile.targetCalories,
+    target_protein: profile.targetProtein,
+    target_carbs: profile.targetCarbs,
+    target_fat: profile.targetFat,
+    created_at: profile.createdAt ?? new Date().toISOString(),
+  };
+}
+
+async function syncProfileToSupabase(profile: UserProfile): Promise<void> {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert(profileToSupabasePayload(profile), { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('Supabase profile sync failed:', error.message);
+    }
+  } catch (error) {
+    console.error('Supabase profile sync error:', error);
+  }
+}
+
+async function syncOnboardingToSupabase(complete: boolean): Promise<void> {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  try {
+    const { error } = await supabase
+      .from('onboarding_status')
+      .upsert({
+        user_id: userId,
+        completed: complete,
+        completed_at: complete ? new Date().toISOString() : null,
+      }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('Supabase onboarding sync failed:', error.message);
+    }
+  } catch (error) {
+    console.error('Supabase onboarding sync error:', error);
+  }
+}
+
+async function syncMealToSupabase(meal: Meal): Promise<void> {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  const mealId = meal.id || crypto.randomUUID();
+
+  try {
+    const { error } = await supabase
+      .from('meals')
+      .upsert({
+        id: mealId,
+        user_id: userId,
+        timestamp: meal.timestamp,
+        meal_type: meal.mealType ?? 'lunch',
+        foods: meal.foods,
+        total_calories: meal.totalCalories,
+        total_protein: meal.totalProtein,
+        total_carbs: meal.totalCarbs,
+        total_fat: meal.totalFat,
+        image_data: meal.imageData ?? null,
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.error('Supabase meal sync failed:', error.message);
+    }
+  } catch (error) {
+    console.error('Supabase meal sync error:', error);
+  }
+}
+
+async function removeMealFromSupabase(id: string): Promise<void> {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  try {
+    const { error } = await supabase
+      .from('meals')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Supabase meal delete failed:', error.message);
+    }
+  } catch (error) {
+    console.error('Supabase meal delete error:', error);
+  }
+}
+
+export async function hydrateUserDataFromSupabase(): Promise<void> {
+  const userId = getCurrentUserId();
+  if (!userId) return;
+
+  try {
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!profileError && profileData && profileData.name) {
+      const profile: UserProfile = {
+        name: profileData.name ?? '',
+        age: Number(profileData.age ?? 0),
+        gender: profileData.gender ?? 'male',
+        weight: Number(profileData.weight ?? 0),
+        height: Number(profileData.height ?? 0),
+        goal: profileData.goal ?? 'maintain',
+        activityLevel: profileData.activity_level ?? 'moderate',
+        targetCalories: Number(profileData.target_calories ?? 0),
+        targetProtein: Number(profileData.target_protein ?? 0),
+        targetCarbs: Number(profileData.target_carbs ?? 0),
+        targetFat: Number(profileData.target_fat ?? 0),
+        createdAt: profileData.created_at ?? undefined,
+      };
+      localStorage.setItem(getStorageKey('userProfile'), JSON.stringify(profile));
+    } else {
+      localStorage.removeItem(getStorageKey('userProfile'));
+    }
+
+    const { data: mealsData, error: mealsError } = await supabase
+      .from('meals')
+      .select('*')
+      .eq('user_id', userId)
+      .order('timestamp', { ascending: false });
+
+    if (!mealsError && mealsData) {
+      const meals: Meal[] = mealsData.map((meal) => ({
+        id: meal.id,
+        timestamp: meal.timestamp,
+        imageData: meal.image_data ?? undefined,
+        foods: Array.isArray(meal.foods) ? meal.foods : [],
+        totalCalories: Number(meal.total_calories ?? 0),
+        totalProtein: Number(meal.total_protein ?? 0),
+        totalCarbs: Number(meal.total_carbs ?? 0),
+        totalFat: Number(meal.total_fat ?? 0),
+        mealType: meal.meal_type ?? 'lunch',
+      }));
+      localStorage.setItem(getStorageKey('meals'), JSON.stringify(meals));
+    }
+
+    const { data: onboardingData, error: onboardingError } = await supabase
+      .from('onboarding_status')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!onboardingError && onboardingData) {
+      localStorage.setItem(getStorageKey('onboardingComplete'), JSON.stringify(Boolean(onboardingData.completed)));
+    }
+  } catch (error) {
+    console.error('Supabase hydration failed:', error);
+  }
 }
 
 export function setCurrentUserAuth(userId: string, email?: string): void {
@@ -63,7 +244,7 @@ export function setCurrentUserAuth(userId: string, email?: string): void {
 export const storage = {
   getProfile(): UserProfile | null {
     const key = getStorageKey('userProfile');
-    const data = localStorage.getItem(key) ?? localStorage.getItem('userProfile');
+    const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : null;
   },
 
@@ -75,10 +256,7 @@ export const storage = {
 
     localStorage.setItem(getStorageKey('userProfile'), JSON.stringify(finalProfile));
 
-    const userAuth = getCurrentUserAuth();
-    if (!userAuth) {
-      localStorage.setItem('userProfile', JSON.stringify(finalProfile));
-    }
+    void syncProfileToSupabase(finalProfile);
   },
 
   saveProfile(profile: UserProfile): void {
@@ -88,27 +266,21 @@ export const storage = {
   setOnboardingComplete(complete: boolean): void {
     localStorage.setItem(getStorageKey('onboardingComplete'), JSON.stringify(complete));
 
-    const userAuth = getCurrentUserAuth();
-    if (!userAuth) {
-      localStorage.setItem('onboardingComplete', JSON.stringify(complete));
-    }
+    void syncOnboardingToSupabase(complete);
   },
 
   getMeals(): Meal[] {
     const key = getStorageKey('meals');
-    const data = localStorage.getItem(key) ?? localStorage.getItem('meals');
+    const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : [];
   },
 
   addMeal(meal: Meal): void {
     const meals = this.getMeals();
-    meals.unshift(meal);
-    localStorage.setItem(getStorageKey('meals'), JSON.stringify(meals));
+    const nextMeals = [meal, ...meals];
+    localStorage.setItem(getStorageKey('meals'), JSON.stringify(nextMeals));
 
-    const userAuth = getCurrentUserAuth();
-    if (!userAuth) {
-      localStorage.setItem('meals', JSON.stringify(meals));
-    }
+    void syncMealToSupabase(meal);
   },
 
   deleteMeal(id: string): void {
@@ -116,10 +288,7 @@ export const storage = {
     const filtered = meals.filter(m => m.id !== id);
     localStorage.setItem(getStorageKey('meals'), JSON.stringify(filtered));
 
-    const userAuth = getCurrentUserAuth();
-    if (!userAuth) {
-      localStorage.setItem('meals', JSON.stringify(filtered));
-    }
+    void removeMealFromSupabase(id);
   },
 
   getTodaysMeals(): Meal[] {
@@ -137,7 +306,7 @@ export const storage = {
 
   hasCompletedOnboarding(): boolean {
     const key = getStorageKey('onboardingComplete');
-    const complete = localStorage.getItem(key) ?? localStorage.getItem('onboardingComplete');
+    const complete = localStorage.getItem(key);
     return complete ? JSON.parse(complete) : false;
   },
 
@@ -150,9 +319,24 @@ export const storage = {
     localStorage.removeItem(`onboardingComplete_${userId}`);
     localStorage.removeItem(`badgeMetrics_${userId}`);
     localStorage.removeItem('userAuth');
+
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('userProfile_') || key.startsWith('meals_') || key.startsWith('onboardingComplete_') || key.startsWith('badgeMetrics_')) {
+        localStorage.removeItem(key);
+      }
+    });
   },
 
-  clearAllData(): void {
+  async clearAllData(): Promise<void> {
+    const userId = getCurrentUserId();
+
+    if (userId) {
+      await supabase.from('meals').delete().eq('user_id', userId);
+      await supabase.from('onboarding_status').delete().eq('user_id', userId);
+      await supabase.from('profiles').delete().eq('user_id', userId);
+      await supabase.from('badge_metrics').delete().eq('user_id', userId);
+    }
+
     const keys = Object.keys(localStorage);
     keys.forEach((key) => {
       if (

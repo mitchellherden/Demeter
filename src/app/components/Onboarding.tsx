@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { storage, UserProfile } from "../utils/storage";
 import { calculateTargets } from "../utils/calculations";
+import { supabase } from "../utils/supabaseClient";
 import { ArrowRight, Target, Activity, User } from "lucide-react";
 
 export function Onboarding() {
@@ -24,7 +25,7 @@ export function Onboarding() {
     gender: 'male' as const,
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (step === 1 && !formData.name.trim()) return;
     if (step === 2 && !formData.goal) return;
 
@@ -54,7 +55,41 @@ export function Onboarding() {
 
       storage.saveProfile(profile);
       storage.setOnboardingComplete(true);
-      navigate('/registration-success');
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!userError && user) {
+        const { error: profileUpsertError } = await supabase.from('profiles').upsert({
+          user_id: user.id,
+          email: user.email,
+          name: profile.name,
+          age: profile.age,
+          gender: profile.gender,
+          weight: profile.weight,
+          height: profile.height,
+          goal: profile.goal,
+          activity_level: profile.activityLevel,
+          target_calories: profile.targetCalories,
+          target_protein: profile.targetProtein,
+          target_carbs: profile.targetCarbs,
+          target_fat: profile.targetFat,
+        }, { onConflict: 'user_id' });
+
+        if (profileUpsertError) {
+          console.error('Failed to sync onboarding profile to Supabase:', profileUpsertError);
+        }
+
+        const { error: onboardingError } = await supabase.from('onboarding_status').upsert({
+          user_id: user.id,
+          completed: true,
+          completed_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
+
+        if (onboardingError) {
+          console.error('Failed to sync onboarding status to Supabase:', onboardingError);
+        }
+      }
+
+      navigate('/dashboard');
     }
   };
 

@@ -11,6 +11,7 @@ import { AlertCircle, Mail, Lock } from "lucide-react";
 import { signInWithEmail, signInWithGoogle } from "../utils/auth";
 import { recordLogin } from "../utils/badges";
 import { setCurrentUserAuth } from "../utils/storage";
+import { supabase } from "../utils/supabaseClient";
 
 export function Login() {
   const navigate = useNavigate();
@@ -66,6 +67,38 @@ export function Login() {
 
       if (data.user) {
         setCurrentUserAuth(data.user.id, data.user.email ?? formData.email);
+
+        const { data: existingProfile, error: profileLookupError } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+
+        if (profileLookupError && profileLookupError.code !== 'PGRST116') {
+          console.error('Failed to check for existing profile:', profileLookupError);
+        }
+
+        if (!existingProfile) {
+          const { error: profileError } = await supabase.from('profiles').insert({
+            user_id: data.user.id,
+            email: data.user.email ?? formData.email,
+            name: null,
+            age: null,
+            gender: null,
+            weight: null,
+            height: null,
+            goal: null,
+            activity_level: null,
+            target_calories: null,
+            target_protein: null,
+            target_carbs: null,
+            target_fat: null,
+          });
+
+          if (profileError) {
+            console.error('Failed to create Supabase profile row:', profileError);
+          }
+        }
       }
 
       recordLogin();

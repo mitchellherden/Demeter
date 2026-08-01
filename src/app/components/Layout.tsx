@@ -3,18 +3,29 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router";
 import { useEffect } from "react";
 import { Home, Camera, User, BookOpen, Clock, LogOut } from "lucide-react";
-import { storage } from "../utils/storage";
+import { hydrateUserDataFromSupabase, storage } from "../utils/storage";
 import { signOut } from "../utils/auth";
+import { supabase } from "../utils/supabaseClient";
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If a user has not completed onboarding yet, redirect them before showing app content.
+  // Only validate the active session for protected routes.
+  // Onboarding completion is handled directly in the onboarding flow after the profile is saved.
   useEffect(() => {
-    if (!storage.hasCompletedOnboarding()) {
-      navigate('/onboarding');
-    }
+    const restoreSessionAndCheckProfile = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error || !session) {
+        navigate('/login');
+        return;
+      }
+
+      await hydrateUserDataFromSupabase();
+    };
+
+    void restoreSessionAndCheckProfile();
   }, [navigate]);
 
   // Bottom navigation items for the main dashboard sections.

@@ -89,7 +89,13 @@ export function Registration() {
         setCurrentUserAuth(data.user.id, formData.email);
       }
 
-      // Redirect to verification step while Supabase sends confirmation
+      // Supabase may either create an immediate session (email confirmation disabled)
+      // or require email verification before the user can sign in.
+      if (data.session) {
+        navigate('/onboarding');
+        return;
+      }
+
       navigate('/verify-email');
     }
   };
