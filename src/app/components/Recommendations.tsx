@@ -1,6 +1,6 @@
 // Personalized recipe recommendations.
 // It measures remaining calories/macros and suggests recipes that match the user's goal.
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -310,6 +310,7 @@ export function Recommendations() {
 }
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
+  const [showRecipe, setShowRecipe] = useState(false);
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
       <div className="aspect-video overflow-hidden bg-gray-100">
@@ -357,9 +358,36 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
             </div>
           </div>
 
-          <Button variant="outline" className="w-full">
+          <button
+            className="w-full border rounded-md p-2 hover:bg-gray-100"
+            onClick={() => setShowRecipe(true)}
+            >
             View Recipe
-          </Button>
+          </button>
+
+          {showRecipe && (
+            <div className="mt-3 p-3 bg-gray-50 rounded-md">
+              <h3 className="font-semibold mb-2">  
+                Instructions 
+              </h3>
+
+              {recipe.instructions.map((step, index) => ( 
+                <p key={index} className="text-sm mb-1"> 
+                {index + 1}. {step}
+                </p>
+                ))} 
+
+          <button
+              className="mt-3 text-sm text-green-600"
+              onClick={() => setShowRecipe(false)}
+          >
+              Close
+
+          </button>
+        </div>
+        
+            )
+            }
         </div>
       </CardContent>
     </Card>
