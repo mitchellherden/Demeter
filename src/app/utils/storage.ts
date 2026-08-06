@@ -2,6 +2,22 @@
 // Data is kept scoped per user and synced to Supabase when a user is signed in.
 import { supabase } from "./supabaseClient";
 
+function isValidUuid(value?: string | null): boolean {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function createSupabaseId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeMealId(id?: string): string {
+  return isValidUuid(id) ? id! : createSupabaseId();
+}
+
 export interface UserProfile {
   name: string;
   age: number;
@@ -126,23 +142,25 @@ async function syncMealToSupabase(meal: Meal): Promise<void> {
   const userId = getCurrentUserId();
   if (!userId) return;
 
-  const mealId = meal.id || crypto.randomUUID();
+  const mealId = normalizeMealId(meal.id);
+  const payload = {
+    id: mealId,
+    user_id: userId,
+    timestamp: meal.timestamp,
+    meal_type: meal.mealType ?? 'lunch',
+    foods: meal.foods,
+    total_calories: meal.totalCalories,
+    total_protein: meal.totalProtein,
+    total_carbs: meal.totalCarbs,
+    total_fat: meal.totalFat,
+    image_data: meal.imageData ?? null,
+    created_at: new Date().toISOString(),
+  };
 
   try {
     const { error } = await supabase
       .from('meals')
-      .upsert({
-        id: mealId,
-        user_id: userId,
-        timestamp: meal.timestamp,
-        meal_type: meal.mealType ?? 'lunch',
-        foods: meal.foods,
-        total_calories: meal.totalCalories,
-        total_protein: meal.totalProtein,
-        total_carbs: meal.totalCarbs,
-        total_fat: meal.totalFat,
-        image_data: meal.imageData ?? null,
-      }, { onConflict: 'id' });
+      .upsert(payload, { onConflict: 'id' });
 
     if (error) {
       console.error('Supabase meal sync failed:', error.message);
@@ -210,8 +228,8 @@ export async function hydrateUserDataFromSupabase(): Promise<void> {
 
     if (!mealsError && mealsData) {
       const meals: Meal[] = mealsData.map((meal) => ({
-        id: meal.id,
-        timestamp: meal.timestamp,
+        id: meal.id ?? crypto.randomUUID(),
+        timestamp: meal.timestamp ?? new Date().toISOString(),
         imageData: meal.image_data ?? undefined,
         foods: Array.isArray(meal.foods) ? meal.foods : [],
         totalCalories: Number(meal.total_calories ?? 0),
@@ -276,11 +294,12 @@ export const storage = {
   },
 
   addMeal(meal: Meal): void {
+    const normalizedMeal = { ...meal, id: normalizeMealId(meal.id) };
     const meals = this.getMeals();
-    const nextMeals = [meal, ...meals];
+    const nextMeals = [normalizedMeal, ...meals];
     localStorage.setItem(getStorageKey('meals'), JSON.stringify(nextMeals));
 
-    void syncMealToSupabase(meal);
+    void syncMealToSupabase(normalizedMeal);
   },
 
   deleteMeal(id: string): void {

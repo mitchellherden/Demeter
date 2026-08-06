@@ -95,7 +95,7 @@ export function Camera() {
 
   const saveMeal = () => {
     const meal: Meal = {
-      id: Date.now().toString(),
+      id: "",
       timestamp: new Date().toISOString(),
       imageData: capturedImage || undefined,
       foods: recognizedFoods,

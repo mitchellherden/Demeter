@@ -57,13 +57,21 @@ CREATE TABLE meals (
     meal_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     meal_time DATETIME NOT NULL,
+    meal_type VARCHAR(20) NOT NULL DEFAULT 'lunch',
     image_url VARCHAR(500),
+    foods JSON,
+    total_calories DECIMAL(8,2) DEFAULT 0,
+    total_protein DECIMAL(8,2) DEFAULT 0,
+    total_carbs DECIMAL(8,2) DEFAULT 0,
+    total_fat DECIMAL(8,2) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_meal_user
         FOREIGN KEY (user_id)
         REFERENCES users(user_id)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+
+    INDEX idx_meals_user_time (user_id, meal_time)
 );
 
 -- ===========================
