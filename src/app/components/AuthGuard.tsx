@@ -12,10 +12,29 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Validate the current auth session before allowing access to protected screens.
   useEffect(() => {
     async function verifySession() {
-      const { data } = await getCurrentSession();
+      const demoUser = localStorage.getItem('userAuth');
+      const isDemoSession = Boolean(demoUser);
 
-      if (!data.session) {
-        navigate("/login", { replace: true });
+      if (!isDemoSession) {
+        const { data } = await getCurrentSession();
+
+        if (!data.session) {
+          navigate("/login", { replace: true });
+          return;
+        }
+      }
+
+      if (isDemoSession) {
+        const profile = storage.getProfile();
+        const onboardingComplete = storage.hasCompletedOnboarding();
+        const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname.startsWith("/onboarding");
+
+        if ((!profile || !profile.name || !onboardingComplete) && !isOnboardingRoute) {
+          navigate("/onboarding", { replace: true });
+          return;
+        }
+
+        setLoading(false);
         return;
       }
 

@@ -5,8 +5,8 @@ import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Camera as CameraIcon, X, Check, Loader2 } from "lucide-react";
-import { recognizeFood } from "../utils/foodDatabase";
 import { storage, FoodItem, Meal } from "../utils/storage";
+import { recognizeFoodWithHuggingFace } from "../utils/huggingFace";
 import { toast } from "sonner";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
@@ -23,6 +23,7 @@ export function Camera() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recognizedFoods, setRecognizedFoods] = useState<FoodItem[]>([]);
+  const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
   const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner' | 'snack'>('lunch');
 
   const startCamera = async () => {
@@ -81,16 +82,28 @@ export function Camera() {
 
   const analyzeImage = async (imageData: string) => {
     setIsAnalyzing(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock AI recognition
-    const foods = recognizeFood(imageData);
-    setRecognizedFoods(foods);
+    setAnalysisMessage(null);
+    setRecognizedFoods([]);
+
+    const result = await recognizeFoodWithHuggingFace(imageData);
+
+    if (result.source === 'fallback') {
+      const fallbackMessage = result.errorMessage
+        ? `${result.errorMessage}`
+        : 'No Hugging Face credentials were configured, so the app used a fallback path.';
+
+      setAnalysisMessage(fallbackMessage);
+      setRecognizedFoods(result.foods);
+      toast.warning(fallbackMessage);
+    } else {
+      setRecognizedFoods(result.foods);
+      setAnalysisMessage(result.foods.length > 0
+        ? `Detected ${result.foods.length} likely food item${result.foods.length > 1 ? 's' : ''}.`
+        : 'No clear food matches were returned by the selected model.');
+      toast.success(`Recognized ${result.foods.length} food item${result.foods.length > 1 ? 's' : ''}!`);
+    }
+
     setIsAnalyzing(false);
-    
-    toast.success(`Recognized ${foods.length} food item${foods.length > 1 ? 's' : ''}!`);
   };
 
   const saveMeal = () => {
@@ -115,6 +128,7 @@ export function Camera() {
   const reset = () => {
     setCapturedImage(null);
     setRecognizedFoods([]);
+    setAnalysisMessage(null);
     stopCamera();
   };
 
@@ -208,8 +222,14 @@ export function Camera() {
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto mb-4" />
                     <p className="text-gray-600">Analyzing your meal...</p>
-                    <p className="text-sm text-gray-500 mt-1">Using AI to identify foods and calculate nutrition</p>
+                    <p className="text-sm text-gray-500 mt-1">Sending the image to Hugging Face</p>
                   </div>
+                </div>
+              )}
+
+              {analysisMessage && !isAnalyzing && (
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                  {analysisMessage}
                 </div>
               )}
 
@@ -299,7 +319,7 @@ export function Camera() {
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-gray-700">
-          <strong>Note:</strong> This demo uses mock AI recognition. In production, this would connect to a computer vision API like Google Cloud Vision or AWS Rekognition with a trained model for food recognition.
+          <strong>Setup:</strong> Add VITE_HUGGINGFACE_ENDPOINT and VITE_HUGGINGFACE_TOKEN in your environment to enable live scanning. Without them, the app stays in a safe fallback mode.
         </p>
       </div>
     </div>
