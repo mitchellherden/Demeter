@@ -2,7 +2,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { getCurrentSession } from "../utils/auth";
-import { hydrateUserDataFromSupabase, storage } from "../utils/storage";
+import { ensureCurrentUserAuthFromSession, hydrateUserDataFromSupabase, storage } from "../utils/storage";
+
+function hasCompletedSetup() {
+  const profile = storage.getProfile();
+  const onboardingComplete = storage.hasCompletedOnboarding();
+  const hasMealHistory = storage.getMeals().length > 0;
+
+  const profileLooksComplete = Boolean(
+    profile &&
+    profile.goal &&
+    profile.activityLevel &&
+    profile.targetCalories > 0
+  );
+
+  const hasMeaningfulProfile = Boolean(profile && (profile.name || profile.goal || hasMealHistory));
+
+  return onboardingComplete || profileLooksComplete || hasMeaningfulProfile;
+}
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -12,24 +29,24 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Validate the current auth session before allowing access to protected screens.
   useEffect(() => {
     async function verifySession() {
-      const demoUser = localStorage.getItem('userAuth');
-      const isDemoSession = Boolean(demoUser);
+      const localUserAuth = localStorage.getItem('userAuth');
+      const { data } = await getCurrentSession();
+      const hasSupabaseSession = Boolean(data.session);
+      const isDemoSession = Boolean(localUserAuth) && !hasSupabaseSession;
 
-      if (!isDemoSession) {
-        const { data } = await getCurrentSession();
+      if (!hasSupabaseSession && !isDemoSession) {
+        navigate('/login', { replace: true });
+        return;
+      }
 
-        if (!data.session) {
-          navigate("/login", { replace: true });
-          return;
-        }
+      if (hasSupabaseSession) {
+        await ensureCurrentUserAuthFromSession();
       }
 
       if (isDemoSession) {
-        const profile = storage.getProfile();
-        const onboardingComplete = storage.hasCompletedOnboarding();
         const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname.startsWith("/onboarding");
 
-        if ((!profile || !profile.name || !onboardingComplete) && !isOnboardingRoute) {
+        if (!hasCompletedSetup() && !isOnboardingRoute) {
           navigate("/onboarding", { replace: true });
           return;
         }
@@ -41,10 +58,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       await hydrateUserDataFromSupabase();
 
       const isOnboardingRoute = location.pathname === "/onboarding" || location.pathname.startsWith("/onboarding");
-      const profile = storage.getProfile();
-      const onboardingComplete = storage.hasCompletedOnboarding();
 
-      if ((!profile || !profile.name || !onboardingComplete) && !isOnboardingRoute) {
+      if (!hasCompletedSetup() && !isOnboardingRoute) {
         navigate("/onboarding", { replace: true });
         return;
       }

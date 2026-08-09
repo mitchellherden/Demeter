@@ -9,15 +9,6 @@ export async function signInWithEmail(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
-export async function signInWithGoogle() {
-  return supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${window.location.origin}/dashboard`,
-    },
-  });
-}
-
 export async function getCurrentUserId() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) {

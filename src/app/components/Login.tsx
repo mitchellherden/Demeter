@@ -8,7 +8,7 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Alert, AlertDescription } from "./ui/alert";
 import { AlertCircle, Mail, Lock } from "lucide-react";
-import { signInWithEmail, signInWithGoogle } from "../utils/auth";
+import { signInWithEmail } from "../utils/auth";
 import { recordLogin } from "../utils/badges";
 import { setCurrentUserAuth } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
@@ -203,21 +203,6 @@ export function Login() {
               className="w-full bg-green-600 hover:bg-green-700"
             >
               Sign In
-            </Button>
-
-            {/* OAuth Button */}
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={async () => {
-                const { error } = await signInWithGoogle();
-                if (error) {
-                  setErrors({ ...errors, general: error.message });
-                }
-              }}
-            >
-              Sign in with Google
             </Button>
 
             {/* Additional Links */}
