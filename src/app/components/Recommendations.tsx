@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { storage } from "../utils/storage";
 import { Sparkles, ChefHat, TrendingUp, Clock } from "lucide-react";
+import { buildMealSuggestionSummary, generateUniqueMealSuggestions, rankMealSuggestions, SuggestionRecipe } from "../utils/mealSuggestions";
+import { recipeCatalog } from "../utils/recipeCatalog";
 
-interface Recipe {
+interface Recipe extends SuggestionRecipe {
   id: string;
   name: string;
   image: string;
@@ -21,11 +22,59 @@ interface Recipe {
   ingredients: string[];
   instructions: string[];
   suitableFor: string[];
+  score?: number;
+  reasons?: string[];
+}
+
+function ingredientWithQuantity(ingredient: string): string {
+  const normalized = ingredient.trim();
+  const hasExplicitQuantity = /(\d|\b(g|kg|ml|l|oz|lb|cup|cups|tbsp|tsp|slice|slices)\b)/i.test(normalized);
+
+  if (hasExplicitQuantity) {
+    return normalized;
+  }
+
+  const lower = normalized.toLowerCase();
+
+  if (/(oil|sauce|dressing|honey|syrup|vinegar|peanut butter|tahini)/i.test(lower)) {
+    return `1 tbsp ${normalized}`;
+  }
+
+  if (/(salt|pepper|cinnamon|paprika|chili|cumin|oregano|thyme|rosemary|parsley|basil|ginger|garlic powder)/i.test(lower)) {
+    return `1 tsp ${normalized}`;
+  }
+
+  if (/(milk|broth|stock|juice|water)/i.test(lower)) {
+    return `120 ml ${normalized}`;
+  }
+
+  if (/(rice|quinoa|oats|pasta|noodles|lentils|chickpeas|beans|granola|berries)/i.test(lower)) {
+    return `100 g ${normalized}`;
+  }
+
+  if (/(chicken|beef|steak|salmon|shrimp|tofu|turkey|fish)/i.test(lower)) {
+    return `150 g ${normalized}`;
+  }
+
+  if (/(egg|eggs)/i.test(lower)) {
+    return `2 ${normalized}`;
+  }
+
+  if (/(wrap|tortilla|bread|bun|bagel)/i.test(lower)) {
+    return `1 ${normalized}`;
+  }
+
+  if (/(yogurt|cheese|avocado|spinach|broccoli|carrot|tomato|cucumber|potato|sweet potato|onion|pepper)/i.test(lower)) {
+    return `80 g ${normalized}`;
+  }
+
+  return `100 g ${normalized}`;
 }
 
 export function Recommendations() {
   const profile = storage.getProfile();
   const todaysMeals = storage.getTodaysMeals();
+  const recentMeals = storage.getMeals();
 
   const todaysStats = useMemo(() => {
     return {
@@ -35,6 +84,11 @@ export function Recommendations() {
       fat: todaysMeals.reduce((sum, meal) => sum + meal.totalFat, 0),
     };
   }, [todaysMeals]);
+
+  const mealSummary = useMemo(
+    () => (profile ? buildMealSuggestionSummary(profile, recentMeals) : null),
+    [profile, recentMeals]
+  );
 
   if (!profile) {
     return null;
@@ -47,196 +101,20 @@ export function Recommendations() {
     fat: profile.targetFat - todaysStats.fat,
   };
 
-  // Mock recipe database
-  const allRecipes: Recipe[] = [
-    {
-      id: '1',
-      name: 'Grilled Chicken Salad',
-      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop',
-      calories: 350,
-      protein: 35,
-      carbs: 20,
-      fat: 15,
-      prepTime: '20 min',
-      difficulty: 'Easy',
-      tags: ['High Protein', 'Low Carb', 'Gluten Free'],
-      suitableFor: ['weight-loss', 'muscle-gain'],
-      ingredients: [
-        '200g chicken breast',
-        'Mixed greens',
-        'Cherry tomatoes',
-        'Cucumber',
-        'Olive oil',
-        'Lemon juice',
-      ],
-      instructions: [
-        'Season and grill chicken breast',
-        'Chop vegetables',
-        'Mix greens and vegetables',
-        'Slice chicken and place on salad',
-        'Drizzle with olive oil and lemon',
-      ],
-    },
-    {
-      id: '2',
-      name: 'Quinoa Buddha Bowl',
-      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop',
-      calories: 450,
-      protein: 18,
-      carbs: 65,
-      fat: 12,
-      prepTime: '30 min',
-      difficulty: 'Easy',
-      tags: ['Vegetarian', 'High Fiber', 'Balanced'],
-      suitableFor: ['maintain', 'general-health'],
-      ingredients: [
-        '1 cup quinoa',
-        'Roasted sweet potato',
-        'Chickpeas',
-        'Avocado',
-        'Spinach',
-        'Tahini dressing',
-      ],
-      instructions: [
-        'Cook quinoa according to package',
-        'Roast sweet potato and chickpeas',
-        'Arrange quinoa in bowl',
-        'Top with vegetables and chickpeas',
-        'Drizzle with tahini dressing',
-      ],
-    },
-    {
-      id: '3',
-      name: 'Salmon with Asparagus',
-      image: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&h=300&fit=crop',
-      calories: 420,
-      protein: 40,
-      carbs: 15,
-      fat: 22,
-      prepTime: '25 min',
-      difficulty: 'Medium',
-      tags: ['High Protein', 'Omega-3', 'Low Carb'],
-      suitableFor: ['weight-loss', 'muscle-gain', 'general-health'],
-      ingredients: [
-        '200g salmon fillet',
-        'Fresh asparagus',
-        'Garlic',
-        'Lemon',
-        'Olive oil',
-        'Herbs',
-      ],
-      instructions: [
-        'Preheat oven to 400°F',
-        'Season salmon with herbs and lemon',
-        'Toss asparagus with olive oil and garlic',
-        'Bake for 15-18 minutes',
-        'Serve immediately',
-      ],
-    },
-    {
-      id: '4',
-      name: 'Protein Pancakes',
-      image: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop',
-      calories: 380,
-      protein: 30,
-      carbs: 45,
-      fat: 8,
-      prepTime: '15 min',
-      difficulty: 'Easy',
-      tags: ['High Protein', 'Breakfast', 'Post-Workout'],
-      suitableFor: ['muscle-gain', 'general-health'],
-      ingredients: [
-        'Protein powder',
-        'Oats',
-        'Eggs',
-        'Banana',
-        'Cinnamon',
-        'Berries for topping',
-      ],
-      instructions: [
-        'Blend all ingredients except berries',
-        'Heat non-stick pan',
-        'Pour batter and cook until bubbles form',
-        'Flip and cook other side',
-        'Top with berries and serve',
-      ],
-    },
-    {
-      id: '5',
-      name: 'Vegetable Stir-Fry with Tofu',
-      image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400&h=300&fit=crop',
-      calories: 320,
-      protein: 20,
-      carbs: 35,
-      fat: 12,
-      prepTime: '20 min',
-      difficulty: 'Easy',
-      tags: ['Vegetarian', 'Low Calorie', 'Quick'],
-      suitableFor: ['weight-loss', 'general-health'],
-      ingredients: [
-        'Firm tofu',
-        'Mixed vegetables',
-        'Soy sauce',
-        'Ginger',
-        'Garlic',
-        'Sesame oil',
-      ],
-      instructions: [
-        'Press and cube tofu',
-        'Stir-fry tofu until golden',
-        'Add vegetables and stir-fry',
-        'Add sauce and seasonings',
-        'Serve hot',
-      ],
-    },
-    {
-      id: '6',
-      name: 'Greek Yogurt Parfait',
-      image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&h=300&fit=crop',
-      calories: 280,
-      protein: 25,
-      carbs: 35,
-      fat: 6,
-      prepTime: '5 min',
-      difficulty: 'Easy',
-      tags: ['High Protein', 'Breakfast', 'Quick'],
-      suitableFor: ['weight-loss', 'muscle-gain', 'general-health'],
-      ingredients: [
-        'Greek yogurt',
-        'Granola',
-        'Mixed berries',
-        'Honey',
-        'Chia seeds',
-      ],
-      instructions: [
-        'Layer yogurt in a glass',
-        'Add granola',
-        'Top with berries',
-        'Drizzle with honey',
-        'Sprinkle chia seeds',
-      ],
-    },
-  ];
+  const allRecipes: Recipe[] = recipeCatalog;
 
-  // Filter recipes based on user's goal and remaining calories
   const recommendedRecipes = useMemo(() => {
-    return allRecipes
-      .filter(recipe => recipe.suitableFor.includes(profile.goal))
-      .filter(recipe => recipe.calories <= remaining.calories + 100) // Allow some flexibility
-      .sort((a, b) => {
-        // Prioritize recipes that match remaining macros
-        const aScore = Math.abs(a.protein - remaining.protein) + 
-                      Math.abs(a.carbs - remaining.carbs) + 
-                      Math.abs(a.fat - remaining.fat);
-        const bScore = Math.abs(b.protein - remaining.protein) + 
-                      Math.abs(b.carbs - remaining.carbs) + 
-                      Math.abs(b.fat - remaining.fat);
-        return aScore - bScore;
-      })
-      .slice(0, 4);
-  }, [profile.goal, remaining, allRecipes]);
+    return rankMealSuggestions(profile, recentMeals, allRecipes, 4);
+  }, [profile, recentMeals, allRecipes]);
 
-  const popularRecipes = allRecipes.slice(0, 3);
+  const generatedRecipes = useMemo(() => {
+    return generateUniqueMealSuggestions(profile, recentMeals, 3);
+  }, [profile, recentMeals]);
+
+  const popularRecipes = useMemo(() => {
+    const excludedIds = new Set([...recommendedRecipes.map((recipe) => recipe.id), ...generatedRecipes.map((recipe) => recipe.id)]);
+    return allRecipes.filter((recipe) => !excludedIds.has(recipe.id)).slice(0, 3);
+  }, [allRecipes, recommendedRecipes, generatedRecipes]);
 
   return (
     <div className="space-y-6">
@@ -244,6 +122,38 @@ export function Recommendations() {
         <h2 className="text-2xl font-semibold mb-1">Meal Recommendations</h2>
         <p className="text-gray-600">Personalized recipes to help you reach your goals</p>
       </div>
+
+      <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            AI Meal Insight
+          </CardTitle>
+          <CardDescription>
+            Suggestions shaped by the meals you uploaded recently
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-700">{mealSummary?.summary}</p>
+          <div className="flex flex-wrap gap-2">
+            {mealSummary?.topFoods.map((food) => (
+              <Badge key={food} variant="secondary" className="text-xs capitalize">
+                {food}
+              </Badge>
+            ))}
+            {mealSummary && (
+              <>
+                <Badge variant="outline" className="text-xs capitalize">
+                  {mealSummary.macroFocus} focus
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {mealSummary.recentMealCount} recent meals analysed
+                </Badge>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Remaining Targets */}
       <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
@@ -287,6 +197,20 @@ export function Recommendations() {
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             {recommendedRecipes.map(recipe => (
+              <RecipeCard key={recipe.id} recipe={recipe} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {generatedRecipes.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-fuchsia-600" />
+            <h3 className="text-xl font-semibold">AI-Generated Just For You</h3>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {generatedRecipes.map((recipe) => (
               <RecipeCard key={recipe.id} recipe={recipe} />
             ))}
           </div>
@@ -342,6 +266,14 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
               </Badge>
             ))}
           </div>
+
+          {recipe.reasons && recipe.reasons.length > 0 && (
+            <div className="space-y-1 rounded-md bg-purple-50 p-3 text-xs text-purple-800">
+              {recipe.reasons.map((reason) => (
+                <p key={reason}>• {reason}</p>
+              ))}
+            </div>
+          )}
           
           <div className="grid grid-cols-3 gap-2 text-sm">
             <div>
@@ -367,6 +299,16 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
 
           {showRecipe && (
             <div className="mt-3 p-3 bg-gray-50 rounded-md">
+              <h3 className="font-semibold mb-2">
+                Ingredients
+              </h3>
+
+              <ul className="text-sm mb-3 space-y-1">
+                {recipe.ingredients.map((ingredient) => (
+                  <li key={ingredient}>• {ingredientWithQuantity(ingredient)}</li>
+                ))}
+              </ul>
+
               <h3 className="font-semibold mb-2">  
                 Instructions 
               </h3>
