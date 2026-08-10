@@ -73,6 +73,22 @@ function getCurrentUserId(): string | null {
   return userAuth?.userId ?? userAuth?.id ?? null;
 }
 
+export async function ensureCurrentUserAuthFromSession(): Promise<string | null> {
+  const existingUserId = getCurrentUserId();
+  if (existingUserId) {
+    return existingUserId;
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.user?.id) {
+    return null;
+  }
+
+  const { id, email } = data.session.user;
+  setCurrentUserAuth(id, email ?? undefined);
+  return id;
+}
+
 function getStorageKey(prefix: string): string {
   const userId = getCurrentUserId() ?? 'anonymous';
   return `${prefix}_${userId}`;
@@ -190,7 +206,7 @@ async function removeMealFromSupabase(id: string): Promise<void> {
 }
 
 export async function hydrateUserDataFromSupabase(): Promise<void> {
-  const userId = getCurrentUserId();
+  const userId = await ensureCurrentUserAuthFromSession();
   if (!userId) return;
 
   try {
@@ -200,7 +216,7 @@ export async function hydrateUserDataFromSupabase(): Promise<void> {
       .eq('user_id', userId)
       .single();
 
-    if (!profileError && profileData && profileData.name) {
+    if (!profileError && profileData) {
       const profile: UserProfile = {
         name: profileData.name ?? '',
         age: Number(profileData.age ?? 0),

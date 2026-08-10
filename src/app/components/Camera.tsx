@@ -316,12 +316,7 @@ export function Camera() {
       </Card>
 
       <canvas ref={canvasRef} className="hidden" />
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-gray-700">
-          <strong>Setup:</strong> Add VITE_HUGGINGFACE_ENDPOINT and VITE_HUGGINGFACE_TOKEN in your environment to enable live scanning. Without them, the app stays in a safe fallback mode.
-        </p>
-      </div>
     </div>
+  
   );
 }
