@@ -7,7 +7,7 @@ import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { storage } from "../utils/storage";
-import { Camera, TrendingUp, Target, Flame, Clock } from "lucide-react";
+import { Camera, TrendingUp, Target, Flame, Clock, Plus } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { updateBadgeMetrics } from "../utils/badges";
 
@@ -80,15 +80,23 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-lg mb-1">Ready to track your first meal?</h3>
-                <p className="text-green-50">Take a photo to get started</p>
+                <p className="text-green-50">Take a photo or log manually</p>
               </div>
+              <div className="flex gap-2">
               <Link to="/dashboard/camera">
                 <Button variant="secondary" size="lg">
                   <Camera className="w-4 h-4 mr-2" />
                   Scan Meal
                 </Button>
               </Link>
+              <Link to="/dashboard/add-food">
+                <Button variant="secondary" size ="lg"> 
+                 <Plus className="w-4 h-4 mr-2" /> 
+                 Add Food 
+                </Button>
+              </Link>
             </div>
+          </div>
           </CardContent>
         </Card>
       )}
@@ -231,10 +239,18 @@ export function Dashboard() {
       {todaysMeals.length > 0 && (
         <Card>
           <CardHeader>
+            <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-gray-600" />
               Today's Meals
             </CardTitle>
+            <Link to="/dashboard/add-food">
+              <Button variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-1"/>
+                  Add Food 
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

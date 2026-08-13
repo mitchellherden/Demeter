@@ -4,6 +4,7 @@ import { createBrowserRouter, RouteObject } from "react-router";
 import { Layout } from "./components/Layout";
 import { Dashboard } from "./components/Dashboard";
 import { Camera } from "./components/Camera";
+import { AddFood } from "./components/AddFood";
 import { Profile } from "./components/Profile";
 import { Recommendations } from "./components/Recommendations";
 import { History } from "./components/History";
@@ -59,6 +60,7 @@ const routes: RouteObject[] = [
     children: [
       { index: true, element: <Dashboard /> },
       { path: "camera", element: <Camera /> },
+      { path: "add-food", element: <AddFood /> },
       { path: "profile", element: <Profile /> },
       { path: "recommendations", element: <Recommendations /> },
       { path: "history", element: <History /> },
