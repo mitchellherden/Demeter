@@ -95,22 +95,14 @@ export function Dashboard() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="font-semibold text-lg mb-1">Ready to track your first meal?</h3>
-                <p className="text-green-50">Take a photo or log food manually to get started</p>
+                <p className="text-green-50">Take a photo to get started</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Link to="/dashboard/camera">
-                  <Button variant="secondary" size="lg" className="w-full">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Scan Meal
-                  </Button>
-                </Link>
-                <Link to="/dashboard/add-food">
-                  <Button variant="secondary" size="lg" className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Food
-                  </Button>
-                </Link>
-              </div>
+              <Link to="/dashboard/camera">
+                <Button variant="secondary" size="lg">
+                  <Camera className="w-4 h-4 mr-2" />
+                  Scan Meal
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -254,10 +246,18 @@ export function Dashboard() {
       {todaysMeals.length > 0 && (
         <Card>
           <CardHeader>
+            <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-gray-600" />
               Today's Meals
             </CardTitle>
+            <Link to="/dashboard/add-food">
+              <Button variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-1"/>
+                  Add Food 
+                </Button>
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
