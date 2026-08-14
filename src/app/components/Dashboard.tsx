@@ -7,7 +7,7 @@ import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { storage } from "../utils/storage";
-import { Camera, TrendingUp, Target, Flame, Clock } from "lucide-react";
+import { Camera, TrendingUp, Target, Flame, Clock, Plus } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { updateBadgeMetrics } from "../utils/badges";
 
@@ -73,21 +73,44 @@ export function Dashboard() {
         <p className="text-gray-600">Here's your nutrition overview for today</p>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Link to="/dashboard/camera">
+          <Button className="w-full bg-green-600 hover:bg-green-700">
+            <Camera className="w-4 h-4 mr-2" />
+            Scan Meal
+          </Button>
+        </Link>
+        <Link to="/dashboard/add-food">
+          <Button variant="outline" className="w-full">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Food Manually
+          </Button>
+        </Link>
+      </div>
+
       {/* Quick Action */}
       {todaysMeals.length === 0 && (
         <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white border-0">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="font-semibold text-lg mb-1">Ready to track your first meal?</h3>
-                <p className="text-green-50">Take a photo to get started</p>
+                <p className="text-green-50">Take a photo or log food manually to get started</p>
               </div>
-              <Link to="/dashboard/camera">
-                <Button variant="secondary" size="lg">
-                  <Camera className="w-4 h-4 mr-2" />
-                  Scan Meal
-                </Button>
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Link to="/dashboard/camera">
+                  <Button variant="secondary" size="lg" className="w-full">
+                    <Camera className="w-4 h-4 mr-2" />
+                    Scan Meal
+                  </Button>
+                </Link>
+                <Link to="/dashboard/add-food">
+                  <Button variant="secondary" size="lg" className="w-full">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Food
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
